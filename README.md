@@ -74,7 +74,10 @@ This project is developed using GitHub Copilot to:
 ```bash
 mvn spring-boot:run
 ```
+## Postman Collection
 
+Public Postman workspace:
+https://hridaya0709-2636994.postman.co/workspace/Hridaya-Saivalli-Kalavagunta's-~d0ed930f-3b4d-45e4-84ba-00b0e253a614/collection/53552630-0d635716-ee32-48d1-8b5c-3a05eb899b22?action=share&creator=53552630
 ---
 
 ## 📈 Future Enhancements
