@@ -28,4 +28,12 @@ public class TaskEntity {
     private String title;
     private String description;
     private String status;
+
+    // Add two fields for createdAt and updatedAt to track when the task was created and last updated
+    private String createdAt;
+    private String updatedAt;
+
+    // Add two fields for priority and dueDate to allow users to set the priority and due date for the task
+    private String priority;
+    private String dueDate;
 }
