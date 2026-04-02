@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 // import @Setter of lombok to generate setter methods for the fields
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 // create the Task entity class with id, title, description and status fields
 @Entity
 @Data
@@ -30,8 +32,8 @@ public class TaskEntity {
     private String status;
 
     // Add two fields for createdAt and updatedAt to track when the task was created and last updated
-    private String createdAt;
-    private String updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Add two fields for priority and dueDate to allow users to set the priority and due date for the task
     private String priority;

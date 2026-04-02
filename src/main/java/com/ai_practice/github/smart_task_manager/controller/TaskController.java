@@ -3,6 +3,7 @@ package com.ai_practice.github.smart_task_manager.controller;
 // import the dependencies needed to create a controller class
 import com.ai_practice.github.smart_task_manager.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -34,7 +36,7 @@ public class TaskController {
 
      // Add APIOperation annotation to provide a summary and description for the API endpoint in the Open API documentation
     @Operation(summary = "Get all tasks",
-            description = "Retrieve a list of all tasks}) ",
+            description = "Retrieve a list of all tasks.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Tasks returned")
             })
@@ -55,17 +57,18 @@ public class TaskController {
                     @ApiResponse(responseCode = "400", description = "Invalid input data")
             })
      @PostMapping("/tasks")
-     public TaskEntity createTask(@RequestBody TaskEntity task) {
+     public TaskEntity createTask(@RequestBody TaskEntity task) throws BadRequestException {
          if (task.getDescription() == null || task.getDescription().isEmpty()) {
+             if (task.getTitle() == null || task.getTitle().isEmpty()) {
+                 throw new BadRequestException("Title must not be null when description is missing or empty");
+             }
              task.setDescription(generateDescription(task.getTitle()));
          }
          // Set createdAt if missing (ISO date: yyyy-MM-dd)
-         if (task.getCreatedAt() == null || task.getCreatedAt().isBlank()) {
-             task.setCreatedAt(LocalDate.now().toString());
+         if (task.getCreatedAt() == null) {
+             task.setCreatedAt(LocalDateTime.now());
          }
-         else {
-             task.setCreatedAt(task.getCreatedAt());
-         }
+
          task.setPriority(task.getPriority());
 
          if (task.getDueDate() != null && !task.getDueDate().isBlank()) {
@@ -73,10 +76,7 @@ public class TaskController {
                  LocalDate due = LocalDate.parse(task.getDueDate().trim());
                  task.setDueDate(due.toString());
              } catch (DateTimeParseException ex) {
-                 throw new ResponseStatusException(
-                         HttpStatus.BAD_REQUEST,
-                         "Invalid dueDate format. Use yyyy-MM-dd"
-                 );
+                 throw new BadRequestException("Invalid date format for dueDate.");
              }
          } else {
              task.setDueDate(LocalDate.now().plusDays(7).toString());
@@ -106,7 +106,7 @@ public class TaskController {
                     @ApiResponse(responseCode = "404", description = "Task not found")
             })
      @PutMapping("/tasks/{id}")
-     public TaskEntity updateTask(@PathVariable Long id, @RequestBody TaskEntity taskDetails) {
+     public TaskEntity updateTask(@PathVariable Long id, @RequestBody TaskEntity taskDetails) throws BadRequestException {
          TaskEntity task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found with id " + id));
          task.setTitle(taskDetails.getTitle());
          // If description is not provided, make use of generateDescription method
@@ -118,8 +118,8 @@ public class TaskController {
          }
          task.setStatus(taskDetails.getStatus());
 
-         if (taskDetails.getUpdatedAt() == null || taskDetails.getUpdatedAt().isBlank()) {
-             task.setUpdatedAt(LocalDate.now().toString());
+         if (taskDetails.getUpdatedAt() == null) {
+             task.setUpdatedAt(LocalDateTime.now());
          }
          else {
              task.setUpdatedAt(taskDetails.getUpdatedAt());
@@ -131,13 +131,8 @@ public class TaskController {
                  LocalDate due = LocalDate.parse(taskDetails.getDueDate().trim());
                  task.setDueDate(due.toString());
              } catch (DateTimeParseException ex) {
-                 throw new ResponseStatusException(
-                         HttpStatus.BAD_REQUEST,
-                         "Invalid dueDate format. Use yyyy-MM-dd"
-                 );
+                 throw new BadRequestException("Invalid date format for dueDate.");
              }
-         } else {
-             task.setDueDate(LocalDate.now().plusDays(7).toString());
          }
 
          return taskRepository.save(task);

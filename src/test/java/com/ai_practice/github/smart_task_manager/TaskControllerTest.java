@@ -72,7 +72,7 @@ public class TaskControllerTest {
     }
 
     @Test
-    void getTaskById_returns500WhenTaskNotFound() throws Exception {
+    void getTaskById_returns404WhenTaskNotFound() throws Exception {
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/smart-task-manager/api/tasks/99"))
@@ -160,7 +160,7 @@ public class TaskControllerTest {
     }
 
     @Test
-    void updateTask_returns500WhenTaskNotFound() throws Exception {
+    void updateTask_returns404WhenTaskNotFound() throws Exception {
         TaskEntity details = new TaskEntity(null, "New Title", "New Desc", "DONE", null, null, null, null);
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -183,10 +183,41 @@ public class TaskControllerTest {
     }
 
     @Test
-    void deleteTask_returns500WhenTaskNotFound() throws Exception {
+    void deleteTask_returns404WhenTaskNotFound() throws Exception {
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/smart-task-manager/api/tasks/99"))
                 .andExpect(status().isNotFound());
     }
+
+    // Create a test case for the priority filter included in the getAllTasks endpoint to verify that it correctly filters tasks by priority
+    @Test
+    void getAllTasks_returnsTasksFilteredByPriority() throws Exception {
+        TaskEntity task1 = new TaskEntity(1L, "Task 1", "Desc 1", "Pending", null, null, "High", null);
+        TaskEntity task2 = new TaskEntity(2L, "Task 2", "Desc 2", "Completed", null, null, "Low", null);
+        when(taskRepository.findByPriority("High")).thenReturn(List.of(task1));
+
+        mockMvc.perform(get("/smart-task-manager/api/tasks?priority=High"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].title").value("Task 1"))
+                .andExpect(jsonPath("$[0].priority").value("High"));
+    }
+
+    // Create new test cases for uncovered code paths in the TaskController, such as testing the behavior of the updateTask endpoint when an invalid date format is provided for the dueDate field
+    @Test
+    void updateTask_returnsBadRequestWhenDueDateIsInvalid() throws Exception {
+        TaskEntity existing = new TaskEntity(1L, "Old Title", "Old Desc", "OPEN", null, null, null, null);
+        TaskEntity details = new TaskEntity(null, "New Title", "New Desc", "DONE", null, null, null, "invalid-date");
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+    }
+
+     @Test
+    void createTask_returnsBadRequestWhenDueDateIsInvalid() throws Exception {
+         TaskEntity task = new TaskEntity(null, "My Task", "My Description", "OPEN", null, null, null, "invalid-date");
+         mockMvc.perform(post("/smart-task-manager/api/tasks")
+                         .contentType(MediaType.APPLICATION_JSON)
+                         .content(objectMapper.writeValueAsString(task)))
+                 .andExpect(status().isBadRequest());
+     }
 }
