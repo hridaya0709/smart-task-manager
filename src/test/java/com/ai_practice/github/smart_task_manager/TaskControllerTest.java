@@ -221,7 +221,7 @@ public class TaskControllerTest {
 
     @Test
     void updateTask_returns404WhenTaskNotFound() throws Exception {
-        // Create details task using taskJson() helper method to set up the details with default values, then override the title field to match the title used in the test
+        // Create details task using task() helper method to set up the details with default values, then override the title field to match the title used in the test
         TaskEntity details = task(t -> t.setTitle("Buy Groceries"));
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -264,9 +264,14 @@ public class TaskControllerTest {
         TaskEntity task2 = task(t -> {
             t.setId(2L);
             t.setTitle("Task 2");
+            t.setPriority("Low");
+        });
+        TaskEntity task3 = task(t -> {
+            t.setId(3L);
+            t.setTitle("Task 3");
             t.setPriority("High");
         });
-        when(taskRepository.findByPriority("High")).thenReturn(List.of(task1, task2));
+        when(taskRepository.findByPriority("High")).thenReturn(List.of(task1, task3));
 
         mockMvc.perform(get("/smart-task-manager/api/tasks?priority=High"))
                 .andExpect(status().isOk())
@@ -276,16 +281,29 @@ public class TaskControllerTest {
     }
 
     // Create new test cases for uncovered code paths in the TaskController, such as testing the behavior of the updateTask endpoint when an invalid date format is provided for the dueDate field
-    @Test
-    void updateTask_returnsBadRequestWhenDueDateIsInvalid() {
-        // Create a TaskEntity using the task() helper method to set up the existing task with default values, then override the dueDate field with an invalid date format
-         TaskEntity existing = task(t -> {
-             t.setTitle("New Title");
-             t.setDescription("New Desc");
-             t.setStatus("DONE");
-             t.setDueDate("invalid-date");
-         });
+   @Test
+    void updateTask_returnsBadRequestWhenDueDateIsInvalid() throws Exception {
+        TaskEntity existing = task(t -> {
+            t.setId(1L);
+            t.setTitle("Old Title");
+            t.setDescription("Old Desc");
+            t.setStatus("OPEN");
+            t.setDueDate("2026-01-01");
+        });
+
+        TaskEntity details = task(t -> {
+            t.setTitle("New Title");
+            t.setDescription("New Desc");
+            t.setStatus("DONE");
+            t.setDueDate("invalid-date");
+        });
+
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        mockMvc.perform(put("/smart-task-manager/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(details)))
+                .andExpect(status().isBadRequest());
     }
 
      @Test
@@ -302,6 +320,104 @@ public class TaskControllerTest {
                          .content(objectMapper.writeValueAsString(task)))
                  .andExpect(status().isBadRequest());
      }
+
+     // Create test cases for the uncovered code paths in the TaskController related to the category field, such as testing the behavior of the createTask and updateTask endpoints when a category is provided in the request body
+    @Test
+    void createTask_savesAndReturnsTaskWithProvidedCategory() throws Exception {
+        TaskEntity task = task(t -> {
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setCategory("Work");
+        });
+        TaskEntity saved = task(t -> {
+            t.setId(1L);
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setCategory("Work");
+        });
+        when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/smart-task-manager/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.category").value("Work"));
+    }
+
+    @Test
+    void updateTask_updatesAndReturnsTaskWithProvidedCategory() throws Exception {
+        TaskEntity existing = task(t -> {
+            t.setId(1L);
+            t.setTitle("Old Title");
+            t.setDescription("Old Desc");
+            t.setCategory("Personal");
+        });
+        TaskEntity details = task(t -> {
+            t.setTitle("New Title");
+            t.setDescription("New Desc");
+            t.setCategory("Work");
+        });
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        mockMvc.perform(put("/smart-task-manager/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(details)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Title"))
+                .andExpect(jsonPath("$.description").value("New Desc"))
+                .andExpect(jsonPath("$.category").value("Work"));
+    }
+
+    // Create test cases for priority field in createTask and updateTask endpoints
+    @Test
+    void createTask_savesAndReturnsTaskWithProvidedPriority() throws Exception {
+        TaskEntity task = task(t -> {
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setPriority("High");
+        });
+        TaskEntity saved = task(t -> {
+            t.setId(1L);
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setPriority("High");
+        });
+        when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/smart-task-manager/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.priority").value("High"));
+    }
+
+    @Test
+    void updateTask_updatesAndReturnsTaskWithProvidedPriority() throws Exception {
+        TaskEntity existing = task(t -> {
+            t.setId(1L);
+            t.setTitle("Old Title");
+            t.setDescription("Old Desc");
+            t.setPriority("Low");
+        });
+        TaskEntity details = task(t -> {
+            t.setTitle("New Title");
+            t.setDescription("New Desc");
+            t.setPriority("High");
+        });
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        mockMvc.perform(put("/smart-task-manager/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(details)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Title"))
+                .andExpect(jsonPath("$.description").value("New Desc"))
+                .andExpect(jsonPath("$.priority").value("High"));
+    }
 
     private TaskEntity task(java.util.function.Consumer<TaskEntity> overrides) {
         TaskEntity t = new TaskEntity();

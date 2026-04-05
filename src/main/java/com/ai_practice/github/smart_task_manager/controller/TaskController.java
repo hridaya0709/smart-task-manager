@@ -55,8 +55,8 @@ public class TaskController {
             })
      @PostMapping("/tasks")
      public TaskEntity createTask(@RequestBody TaskEntity task) throws BadRequestException {
-         if (task.getDescription() == null || task.getDescription().isEmpty()) {
-             if (task.getTitle() == null || task.getTitle().isEmpty()) {
+         if (task.getDescription() == null || task.getDescription().isEmpty() || task.getDescription().isBlank()) {
+             if (task.getTitle() == null || task.getTitle().isEmpty() || task.getTitle().isBlank()) {
                  throw new BadRequestException("Title must not be null when description is missing or empty");
              }
              task.setDescription(generateDescription(task.getTitle()));
@@ -66,7 +66,7 @@ public class TaskController {
              task.setCreatedAt(LocalDateTime.now());
          }
          // Suggest the category based on the title if they are not provided
-         if (task.getCategory() == null || task.getCategory().isEmpty()) {
+         if (task.getCategory() == null || task.getCategory().isEmpty() || task.getCategory().isBlank()) {
              if (task.getTitle() != null && !task.getTitle().isEmpty()) {
                  String lowerTitle = task.getTitle().toLowerCase();
                  if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
@@ -144,10 +144,15 @@ public class TaskController {
      @PutMapping("/tasks/{id}")
      public TaskEntity updateTask(@PathVariable Long id, @RequestBody TaskEntity taskDetails) throws BadRequestException {
          TaskEntity task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found with id " + id));
+
+         if (taskDetails.getTitle() == null || taskDetails.getTitle().isEmpty() || taskDetails.getTitle().isBlank()) {
+                 throw new BadRequestException("Title must not be null when description is missing or empty");
+         }
          task.setTitle(taskDetails.getTitle());
+
          // If description is not provided, make use of generateDescription method
          // to generate a description based on the title
-         if (taskDetails.getDescription() == null || taskDetails.getDescription().isEmpty()) {
+         if (taskDetails.getDescription() == null || taskDetails.getDescription().isEmpty() || taskDetails.getDescription().isBlank()) {
              task.setDescription(generateDescription(taskDetails.getTitle()));
          } else {
              task.setDescription(taskDetails.getDescription());
@@ -162,7 +167,7 @@ public class TaskController {
          }
 
          // Determine the category based on the title if it is not provided
-         if (taskDetails.getCategory() == null || taskDetails.getCategory().isEmpty()) {
+         if (taskDetails.getCategory() == null || taskDetails.getCategory().isEmpty() || taskDetails.getCategory().isBlank()) {
              if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
                  String lowerTitle = taskDetails.getTitle().toLowerCase();
                  if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
