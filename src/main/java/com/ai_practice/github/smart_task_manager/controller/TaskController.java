@@ -4,7 +4,6 @@ package com.ai_practice.github.smart_task_manager.controller;
 import com.ai_practice.github.smart_task_manager.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.coyote.BadRequestException;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 // import all the missing dependencies for this controller class
@@ -19,8 +18,6 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 // import @RequestMapping of springframework to map the base URL for the controller
-import org.springframework.web.server.ResponseStatusException;
-
 // import the dependencies for Open API documentation
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,8 +55,8 @@ public class TaskController {
             })
      @PostMapping("/tasks")
      public TaskEntity createTask(@RequestBody TaskEntity task) throws BadRequestException {
-         if (task.getDescription() == null || task.getDescription().isEmpty()) {
-             if (task.getTitle() == null || task.getTitle().isEmpty()) {
+         if (task.getDescription() == null || task.getDescription().isEmpty() || task.getDescription().isBlank()) {
+             if (task.getTitle() == null || task.getTitle().isEmpty() || task.getTitle().isBlank()) {
                  throw new BadRequestException("Title must not be null when description is missing or empty");
              }
              task.setDescription(generateDescription(task.getTitle()));
@@ -68,8 +65,47 @@ public class TaskController {
          if (task.getCreatedAt() == null) {
              task.setCreatedAt(LocalDateTime.now());
          }
+         // Suggest the category based on the title if they are not provided
+         if (task.getCategory() == null || task.getCategory().isEmpty() || task.getCategory().isBlank()) {
+             if (task.getTitle() != null && !task.getTitle().isEmpty()) {
+                 String lowerTitle = task.getTitle().toLowerCase();
+                 if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
+                     task.setCategory("Personal");
+                 } else if (lowerTitle.contains("project") || lowerTitle.contains("report")) {
+                     task.setCategory("Work");
+                 } else if (lowerTitle.contains("trip") || lowerTitle.contains("travel")) {
+                     task.setCategory("Leisure");
+                 } else {
+                     task.setCategory("General");
+                 }
+             } else {
+                 task.setCategory("General");
+             }
+         }
 
-         task.setPriority(task.getPriority());
+         // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
+            if (task.getPriority() == null || task.getPriority().isEmpty()) {
+                if (task.getTitle() != null && !task.getTitle().isEmpty()) {
+                    String lowerTitle = task.getTitle().toLowerCase();
+                    if (lowerTitle.contains("urgent") || lowerTitle.contains("asap") || lowerTitle.contains("immediately")) {
+                        task.setPriority("High");
+                    } else if (lowerTitle.contains("soon") || lowerTitle.contains("important")) {
+                        task.setPriority("Medium");
+                    } else {
+                        task.setPriority("Low");
+                    }
+                } else {
+                    task.setPriority("Medium");
+                }
+            } else {
+                // Validate the provided priority value and set it to "Medium" if it is invalid
+                String priority = task.getPriority().trim();
+                if (priority.equalsIgnoreCase("Low") || priority.equalsIgnoreCase("Medium") || priority.equalsIgnoreCase("High")) {
+                    task.setPriority(priority.substring(0, 1).toUpperCase() + priority.substring(1).toLowerCase());
+                } else {
+                    task.setPriority("Medium");
+                }
+            }
 
          if (task.getDueDate() != null && !task.getDueDate().isBlank()) {
              try {
@@ -108,10 +144,15 @@ public class TaskController {
      @PutMapping("/tasks/{id}")
      public TaskEntity updateTask(@PathVariable Long id, @RequestBody TaskEntity taskDetails) throws BadRequestException {
          TaskEntity task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found with id " + id));
+
+         if (taskDetails.getTitle() == null || taskDetails.getTitle().isEmpty() || taskDetails.getTitle().isBlank()) {
+                 throw new BadRequestException("Title must not be null when description is missing or empty");
+         }
          task.setTitle(taskDetails.getTitle());
+
          // If description is not provided, make use of generateDescription method
          // to generate a description based on the title
-         if (taskDetails.getDescription() == null || taskDetails.getDescription().isEmpty()) {
+         if (taskDetails.getDescription() == null || taskDetails.getDescription().isEmpty() || taskDetails.getDescription().isBlank()) {
              task.setDescription(generateDescription(taskDetails.getTitle()));
          } else {
              task.setDescription(taskDetails.getDescription());
@@ -124,7 +165,50 @@ public class TaskController {
          else {
              task.setUpdatedAt(taskDetails.getUpdatedAt());
          }
-         task.setPriority(taskDetails.getPriority());
+
+         // Determine the category based on the title if it is not provided
+         if (taskDetails.getCategory() == null || taskDetails.getCategory().isEmpty() || taskDetails.getCategory().isBlank()) {
+             if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
+                 String lowerTitle = taskDetails.getTitle().toLowerCase();
+                 if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
+                     task.setCategory("Personal");
+                 } else if (lowerTitle.contains("project") || lowerTitle.contains("report")) {
+                     task.setCategory("Work");
+                 } else if (lowerTitle.contains("trip") || lowerTitle.contains("travel")) {
+                     task.setCategory("Leisure");
+                 } else {
+                     task.setCategory("General");
+                 }
+             } else {
+                 task.setCategory("General");
+             }
+         } else {
+             task.setCategory(taskDetails.getCategory());
+         }
+
+         // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
+         if (taskDetails.getPriority() == null || taskDetails.getPriority().isEmpty()) {
+             if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
+                 String lowerTitle = taskDetails.getTitle().toLowerCase();
+                 if (lowerTitle.contains("urgent") || lowerTitle.contains("asap") || lowerTitle.contains("immediately")) {
+                     task.setPriority("High");
+                 } else if (lowerTitle.contains("soon") || lowerTitle.contains("important")) {
+                     task.setPriority("Medium");
+                 } else {
+                     task.setPriority("Low");
+                 }
+             } else {
+                 task.setPriority("Medium");
+             }
+         } else {
+             // Validate the provided priority value and set it to "Medium" if it is invalid
+             String priority = taskDetails.getPriority().trim();
+             if (priority.equalsIgnoreCase("Low") || priority.equalsIgnoreCase("Medium") || priority.equalsIgnoreCase("High")) {
+                 task.setPriority(priority.substring(0, 1).toUpperCase() + priority.substring(1).toLowerCase());
+             } else {
+                 task.setPriority("Medium");
+             }
+         }
 
          if (taskDetails.getDueDate() != null && !taskDetails.getDueDate().isBlank()) {
              try {

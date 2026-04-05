@@ -38,4 +38,7 @@ public class TaskEntity {
     // Add two fields for priority and dueDate to allow users to set the priority and due date for the task
     private String priority;
     private String dueDate;
+
+    // Add category field to allow users to categorize their tasks
+    private String category;
 }
