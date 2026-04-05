@@ -39,9 +39,20 @@ public class TaskControllerTest {
 
     @Test
     void getAllTasks_returnsAllTasks() throws Exception {
-        TaskEntity task1 = new TaskEntity(1L, "Task 1", "Desc 1", "Pending", null, null, null, null);
-        TaskEntity task2 = new TaskEntity(2L, "Task 2", "Desc 2", "Completed", null, null, null, null);
-        when(taskRepository.findAll()).thenReturn(List.of(task1, task2));
+        // create task1 and task2 using task() helper method to set up the tasks with default values, then override the id, title, description and status fields to match the id, title, description and status used in the test
+        TaskEntity task1Entity = task(t -> {
+            t.setId(1L);
+            t.setTitle("Task 1");
+            t.setDescription("Desc 1");
+            t.setStatus("Pending");
+        });
+        TaskEntity task2Entity = task(t -> {
+            t.setId(2L);
+            t.setTitle("Task 2");
+            t.setDescription("Desc 2");
+            t.setStatus("Completed");
+        });
+        when(taskRepository.findAll()).thenReturn(List.of(task1Entity, task2Entity));
 
         mockMvc.perform(get("/smart-task-manager/api/tasks"))
                 .andExpect(status().isOk())
@@ -61,7 +72,12 @@ public class TaskControllerTest {
 
     @Test
     void getTaskById_returnsTaskWhenFound() throws Exception {
-        TaskEntity task = new TaskEntity(1L, "Task 1", "Desc 1", "OPEN", null, null, null, null);
+        // create task using task() helper method to set up the task with default values, then override the id, title and description fields to match the id, title and description used in the test
+         TaskEntity task = task(t -> {
+             t.setId(1L);
+             t.setTitle("Task 1");
+             t.setDescription("Desc 1");
+         });
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
 
         mockMvc.perform(get("/smart-task-manager/api/tasks/1"))
@@ -81,8 +97,18 @@ public class TaskControllerTest {
 
     @Test
     void createTask_savesAndReturnsTaskWithProvidedDescription() throws Exception {
-        TaskEntity task = new TaskEntity(null, "My Task", "My Description", "OPEN", null, null, null, null);
-        TaskEntity saved = new TaskEntity(1L, "My Task", "My Description", "OPEN", null, null, null, null);
+        TaskEntity task;
+        TaskEntity saved;
+        // create task and saved using task() helper method to set up the task and saved with default values, then override the fields as needed for the test
+         task = task(t -> {
+             t.setTitle("My Task");
+             t.setDescription("My Description");
+         });
+         saved = task(t -> {
+             t.setId(1L);
+             t.setTitle("My Task");
+             t.setDescription("My Description");
+         });
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -95,7 +121,12 @@ public class TaskControllerTest {
 
     @Test
     void createTask_generatesDescriptionWhenDescriptionIsNull() throws Exception {
-        TaskEntity task = new TaskEntity(null, "Buy Groceries", null, "OPEN", null, null, null, null);
+        TaskEntity task;
+        // create task using task() helper method to set up the task with default values, then override the title and description fields to match the title and description used in the test
+         task = task(t -> {
+             t.setTitle("Buy Groceries");
+             t.setDescription(null);
+         });
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -107,7 +138,12 @@ public class TaskControllerTest {
 
     @Test
     void createTask_generatesDescriptionWhenDescriptionIsEmpty() throws Exception {
-        TaskEntity task = new TaskEntity(null, "Finish Project Report", "", "OPEN", null, null, null, null);
+         TaskEntity task;
+        // create task using task() helper method to set up the task with default values, then override the title and description fields to match the title and description used in the test
+         task = task(t -> {
+             t.setTitle("Finish Project Report");
+             t.setDescription("");
+         });
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -119,7 +155,8 @@ public class TaskControllerTest {
 
     @Test
     void createTask_generatesDefaultDescriptionForUnrecognizedTitle() throws Exception {
-        TaskEntity task = new TaskEntity(null, "Unknown Task", null, "OPEN", null, null, null, null);
+        // create task using task() helper method to set up the task with default values, then override the title field to match the title used in the test
+        TaskEntity task = task(t -> t.setTitle("Unknown Task"));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -131,8 +168,20 @@ public class TaskControllerTest {
 
     @Test
     void updateTask_updatesAndReturnsTaskWithProvidedDescription() throws Exception {
-        TaskEntity existing = new TaskEntity(1L, "Old Title", "Old Desc", "OPEN", null, null, null, null);
-        TaskEntity details = new TaskEntity(null, "New Title", "New Desc", "DONE", null, null, null, null);
+         TaskEntity existing;
+         TaskEntity details;
+        // Create existing and details tasks using task() helper method to set up the existing task and details with default values, then override the fields as needed for the test
+         existing = task(t -> {
+             t.setId(1L);
+             t.setTitle("Old Title");
+             t.setDescription("Old Desc");
+             t.setStatus("OPEN");
+         });
+         details = task(t -> {
+             t.setTitle("New Title");
+             t.setDescription("New Desc");
+             t.setStatus("DONE");
+         });
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -147,8 +196,19 @@ public class TaskControllerTest {
 
     @Test
     void updateTask_generatesDescriptionWhenDescriptionIsEmpty() throws Exception {
-        TaskEntity existing = new TaskEntity(1L, "Old Title", "Old Desc", "OPEN", null, null, null, null);
-        TaskEntity details = new TaskEntity(null, "Buy Groceries", "", "OPEN", null, null, null, null);
+
+        // Create existing and details tasks using task() helper method to set up the existing task and details with default values, then override the fields as needed for the test
+         TaskEntity existing = task(t -> {
+             t.setId(1L);
+             t.setTitle("Old Title");
+             t.setDescription("Old Desc");
+             t.setStatus("OPEN");
+         });
+         TaskEntity details = task(t -> {
+             t.setTitle("Buy Groceries");
+             t.setDescription("");
+             t.setStatus("OPEN");
+         });
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -161,7 +221,8 @@ public class TaskControllerTest {
 
     @Test
     void updateTask_returns404WhenTaskNotFound() throws Exception {
-        TaskEntity details = new TaskEntity(null, "New Title", "New Desc", "DONE", null, null, null, null);
+        // Create details task using taskJson() helper method to set up the details with default values, then override the title field to match the title used in the test
+        TaskEntity details = task(t -> t.setTitle("Buy Groceries"));
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/smart-task-manager/api/tasks/99")
@@ -172,7 +233,8 @@ public class TaskControllerTest {
 
     @Test
     void deleteTask_deletesTaskAndReturnsOk() throws Exception {
-        TaskEntity task = new TaskEntity(1L, "Task 1", "Desc 1", "OPEN", null, null, null, null);
+        // Modify the task creation using task() helper method to set up the existing task with default values, then override the id field to match the id used in the test
+        TaskEntity task = task(t -> t.setId(1L));
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
         doNothing().when(taskRepository).delete(task);
 
@@ -193,31 +255,65 @@ public class TaskControllerTest {
     // Create a test case for the priority filter included in the getAllTasks endpoint to verify that it correctly filters tasks by priority
     @Test
     void getAllTasks_returnsTasksFilteredByPriority() throws Exception {
-        TaskEntity task1 = new TaskEntity(1L, "Task 1", "Desc 1", "Pending", null, null, "High", null);
-        TaskEntity task2 = new TaskEntity(2L, "Task 2", "Desc 2", "Completed", null, null, "Low", null);
-        when(taskRepository.findByPriority("High")).thenReturn(List.of(task1));
+        // Modify the creation of task1 and task2 using task() method
+        TaskEntity task1 = task(t -> {
+            t.setId(1L);
+            t.setTitle("Task 1");
+            t.setPriority("High");
+        });
+        TaskEntity task2 = task(t -> {
+            t.setId(2L);
+            t.setTitle("Task 2");
+            t.setPriority("High");
+        });
+        when(taskRepository.findByPriority("High")).thenReturn(List.of(task1, task2));
 
         mockMvc.perform(get("/smart-task-manager/api/tasks?priority=High"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].title").value("Task 1"))
                 .andExpect(jsonPath("$[0].priority").value("High"));
     }
 
     // Create new test cases for uncovered code paths in the TaskController, such as testing the behavior of the updateTask endpoint when an invalid date format is provided for the dueDate field
     @Test
-    void updateTask_returnsBadRequestWhenDueDateIsInvalid() throws Exception {
-        TaskEntity existing = new TaskEntity(1L, "Old Title", "Old Desc", "OPEN", null, null, null, null);
-        TaskEntity details = new TaskEntity(null, "New Title", "New Desc", "DONE", null, null, null, "invalid-date");
+    void updateTask_returnsBadRequestWhenDueDateIsInvalid() {
+        // Create a TaskEntity using the task() helper method to set up the existing task with default values, then override the dueDate field with an invalid date format
+         TaskEntity existing = task(t -> {
+             t.setTitle("New Title");
+             t.setDescription("New Desc");
+             t.setStatus("DONE");
+             t.setDueDate("invalid-date");
+         });
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
     }
 
      @Test
     void createTask_returnsBadRequestWhenDueDateIsInvalid() throws Exception {
-         TaskEntity task = new TaskEntity(null, "My Task", "My Description", "OPEN", null, null, null, "invalid-date");
-         mockMvc.perform(post("/smart-task-manager/api/tasks")
+        // Create a task using task() helper method
+            TaskEntity task = task(t -> {
+                t.setTitle("New Task");
+                t.setDescription("New Desc");
+                t.setStatus("OPEN");
+                t.setDueDate("invalid-date");
+            });
+        mockMvc.perform(post("/smart-task-manager/api/tasks")
                          .contentType(MediaType.APPLICATION_JSON)
                          .content(objectMapper.writeValueAsString(task)))
                  .andExpect(status().isBadRequest());
      }
+
+    private TaskEntity task(java.util.function.Consumer<TaskEntity> overrides) {
+        TaskEntity t = new TaskEntity();
+        t.setTitle(null);
+        t.setDescription(null);
+        t.setStatus(null);
+        t.setCreatedAt(null);
+        t.setUpdatedAt(null);
+        t.setPriority(null);
+        t.setDueDate(null);
+        t.setCategory(null);
+        overrides.accept(t);
+        return t;
+    }
 }
