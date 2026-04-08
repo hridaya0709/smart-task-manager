@@ -25,6 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// import TaskAIService
+import com.ai_practice.github.smart_task_manager.service.TaskAIService;
+
 @WebMvcTest(controllers = TaskController.class)
 public class TaskControllerTest {
 
@@ -36,6 +39,10 @@ public class TaskControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    // Create a mock bean for TaskAIService to allow the TaskController to be tested without requiring an actual implementation of the service
+    @MockBean
+    private TaskAIService taskAIService;
 
     @Test
     void getAllTasks_returnsAllTasks() throws Exception {
@@ -109,6 +116,7 @@ public class TaskControllerTest {
              t.setTitle("My Task");
              t.setDescription("My Description");
          });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -127,6 +135,7 @@ public class TaskControllerTest {
              t.setTitle("Buy Groceries");
              t.setDescription(null);
          });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -144,6 +153,7 @@ public class TaskControllerTest {
              t.setTitle("Finish Project Report");
              t.setDescription("");
          });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -157,6 +167,7 @@ public class TaskControllerTest {
     void createTask_generatesDefaultDescriptionForUnrecognizedTitle() throws Exception {
         // create task using task() helper method to set up the task with default values, then override the title field to match the title used in the test
         TaskEntity task = task(t -> t.setTitle("Unknown Task"));
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -182,6 +193,7 @@ public class TaskControllerTest {
              t.setDescription("New Desc");
              t.setStatus("DONE");
          });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -209,6 +221,7 @@ public class TaskControllerTest {
              t.setDescription("");
              t.setStatus("OPEN");
          });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -223,6 +236,7 @@ public class TaskControllerTest {
     void updateTask_returns404WhenTaskNotFound() throws Exception {
         // Create details task using task() helper method to set up the details with default values, then override the title field to match the title used in the test
         TaskEntity details = task(t -> t.setTitle("Buy Groceries"));
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/smart-task-manager/api/tasks/99")
@@ -235,6 +249,7 @@ public class TaskControllerTest {
     void deleteTask_deletesTaskAndReturnsOk() throws Exception {
         // Modify the task creation using task() helper method to set up the existing task with default values, then override the id field to match the id used in the test
         TaskEntity task = task(t -> t.setId(1L));
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
         doNothing().when(taskRepository).delete(task);
 
@@ -246,6 +261,7 @@ public class TaskControllerTest {
 
     @Test
     void deleteTask_returns404WhenTaskNotFound() throws Exception {
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/smart-task-manager/api/tasks/99"))
@@ -271,6 +287,7 @@ public class TaskControllerTest {
             t.setTitle("Task 3");
             t.setPriority("High");
         });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findByPriority("High")).thenReturn(List.of(task1, task3));
 
         mockMvc.perform(get("/smart-task-manager/api/tasks?priority=High"))
@@ -297,7 +314,7 @@ public class TaskControllerTest {
             t.setStatus("DONE");
             t.setDueDate("invalid-date");
         });
-
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         mockMvc.perform(put("/smart-task-manager/api/tasks/1")
@@ -315,6 +332,7 @@ public class TaskControllerTest {
                 t.setStatus("OPEN");
                 t.setDueDate("invalid-date");
             });
+         when(taskAIService.categorize(any(), any())).thenReturn("General");
         mockMvc.perform(post("/smart-task-manager/api/tasks")
                          .contentType(MediaType.APPLICATION_JSON)
                          .content(objectMapper.writeValueAsString(task)))
@@ -335,6 +353,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setCategory("Work");
         });
+        when(taskAIService.categorize(any(), any())).thenReturn("Work");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -358,6 +377,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setCategory("Work");
         });
+        when(taskAIService.categorize(any(), any())).thenReturn("Work");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -384,6 +404,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setPriority("High");
         });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -407,6 +428,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setPriority("High");
         });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
