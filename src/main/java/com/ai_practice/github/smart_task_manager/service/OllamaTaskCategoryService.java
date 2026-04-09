@@ -5,9 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.Set;
 
 @Service
@@ -25,10 +27,18 @@ public class OllamaTaskCategoryService implements TaskAIService {
 
     public OllamaTaskCategoryService(
             @Value("${ollama.url}") String ollamaUrl,
-            @Value("${ollama.model}") String model
+            @Value("${ollama.model}") String model,
+            @Value("${ollama.connect-timeout-seconds:5}") int connectTimeoutSeconds,
+            @Value("${ollama.read-timeout-seconds:30}") int readTimeoutSeconds
     ) {
         this.model = model;
-        this.restClient = RestClient.builder().baseUrl(ollamaUrl).build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(connectTimeoutSeconds));
+        requestFactory.setReadTimeout(Duration.ofSeconds(readTimeoutSeconds));
+        this.restClient = RestClient.builder()
+                .baseUrl(ollamaUrl)
+                .requestFactory(requestFactory)
+                .build();
     }
 
     @Override
@@ -58,7 +68,7 @@ public class OllamaTaskCategoryService implements TaskAIService {
 
             return extractCategory(response);
         } catch (Exception ex) {
-            log.warn("Ollama categorization failed, defaulting to General: {}", ex.getMessage());
+            log.warn("Ollama categorization failed, defaulting to General", ex);
             return "General";
         }
     }
