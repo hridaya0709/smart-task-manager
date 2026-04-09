@@ -24,8 +24,8 @@ public class OllamaTaskCategoryService implements TaskAIService {
     private final String model;
 
     public OllamaTaskCategoryService(
-            @Value("${ollama.url:http://localhost:11434}") String ollamaUrl,
-            @Value("${ollama.model:mistral}") String model
+            @Value("${ollama.url}") String ollamaUrl,
+            @Value("${ollama.model}") String model
     ) {
         this.model = model;
         this.restClient = RestClient.builder().baseUrl(ollamaUrl).build();
