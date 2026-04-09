@@ -27,7 +27,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-     @ExceptionHandler(Exception.class)
+    @ExceptionHandler(AiServiceTimeoutException.class)
+    public ResponseEntity<ErrorResponse> handleAiServiceTimeout(AiServiceTimeoutException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.GATEWAY_TIMEOUT.value(),
+                ex.getMessage()
+        );
+        return new ResponseEntity<>(error, HttpStatus.GATEWAY_TIMEOUT);
+    }
+
+
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
          ErrorResponse error = new ErrorResponse(
                  HttpStatus.INTERNAL_SERVER_ERROR.value(),

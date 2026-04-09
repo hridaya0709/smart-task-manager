@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 // import all the missing dependencies for this controller class
 import com.ai_practice.github.smart_task_manager.entity.TaskEntity;
 import com.ai_practice.github.smart_task_manager.repository.TaskRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
@@ -113,7 +112,7 @@ public class TaskController {
          } else {
              task.setDueDate(LocalDate.now().plusDays(7).toString());
          }
-
+         sanitizeTaskInput(task);
          return taskRepository.save(task);
      }
 
@@ -200,8 +199,12 @@ public class TaskController {
                  throw new BadRequestException("Invalid date format for dueDate.");
              }
          }
+        else {
+             task.setDueDate(LocalDate.now().plusDays(7).toString());
+         }
 
-         return taskRepository.save(task);
+        sanitizeTaskInput(task);
+        return taskRepository.save(task);
      }
 
      // Add APIOperation annotation to provide a summary and description for the API endpoint in the Open API documentation
@@ -244,4 +247,20 @@ public class TaskController {
              return "No description provided";
          }
      }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed; // optional: convert blank to null
+    }
+
+    private void sanitizeTaskInput(TaskEntity task) {
+        task.setTitle(normalize(task.getTitle()));
+        task.setDescription(normalize(task.getDescription()));
+        task.setStatus(normalize(task.getStatus()));
+        task.setPriority(normalize(task.getPriority()));
+        task.setDueDate(normalize(task.getDueDate()));
+        task.setCategory(normalize(task.getCategory()));
+    }
+
 }
