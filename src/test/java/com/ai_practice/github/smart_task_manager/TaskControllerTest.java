@@ -272,6 +272,23 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$.priority").value("High"));
     }
 
+    // Add test case for createTask endpoint to verify that it correctly categorizes a task using the DefaultTaskCategoryService when the OllamaTaskCategoryService is not available or fails to categorize the task
+    @Test
+    void createTask_categorizesTaskUsingDefaultServiceWhenOllamaFails() throws Exception {
+        TaskEntity task = task(t -> {
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+        });
+        TaskEntity saved = task(t -> {
+            t.setId(1L);
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setCategory("General");
+        });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
+    }
+
     /*Update test cases*/
     @Test
     void updateTask_updatesAndReturnsTaskWithProvidedDescription() throws Exception {
@@ -415,6 +432,23 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$.title").value("New Title"))
                 .andExpect(jsonPath("$.description").value("New Desc"))
                 .andExpect(jsonPath("$.priority").value("High"));
+    }
+
+    // Create a test case for the updateTask endpoint to verify that it correctly categorizes a task using the DefaultTaskCategoryService when the OllamaTaskCategoryService is not available or fails to categorize the task
+    @Test
+    void updateTask_categorizesTaskUsingDefaultServiceWhenOllamaFails() throws Exception {
+        TaskEntity existing = task(t -> {
+            t.setId(1L);
+            t.setTitle("Old Title");
+            t.setDescription("Old Desc");
+        });
+        TaskEntity details = task(t -> {
+            t.setTitle("New Title");
+            t.setDescription("New Desc");
+        });
+        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
     }
 
     /*Delete test cases*/
