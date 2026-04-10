@@ -287,6 +287,13 @@ public class TaskControllerTest {
         });
         when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/smart-task-manager/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.category").value("General"));
     }
 
     /*Update test cases*/
@@ -449,6 +456,14 @@ public class TaskControllerTest {
         when(taskAIService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        mockMvc.perform(put("/smart-task-manager/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(details)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Title"))
+                .andExpect(jsonPath("$.description").value("New Desc"))
+                .andExpect(jsonPath("$.category").value("General"));
     }
 
     /*Delete test cases*/
