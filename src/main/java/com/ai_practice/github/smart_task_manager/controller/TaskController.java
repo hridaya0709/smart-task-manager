@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 // import all the missing dependencies for this controller class
 import com.ai_practice.github.smart_task_manager.entity.TaskEntity;
 import com.ai_practice.github.smart_task_manager.repository.TaskRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
@@ -22,14 +21,23 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+// import TaskAIService to use the AI service for categorizing tasks based on their title and description
+import com.ai_practice.github.smart_task_manager.service.TaskAIService;
+
 // Add @Tag annotation to group the API endpoints in the Open API documentation
 @Tag(name = "Task API", description = "API for managing tasks in the Smart Task Manager application")
 // create the TaskController class that will handle the HTTP requests for the Task entity
 @RestController
 @RequestMapping("/smart-task-manager/api")
 public class TaskController {
-     @Autowired
-     private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+    // Create a constructor to inject the TaskAIService dependency and TaskRepository dependency
+    private final TaskAIService taskAIService;
+
+    public TaskController(TaskAIService taskAIService, TaskRepository taskRepository) {
+        this.taskAIService = taskAIService;
+        this.taskRepository = taskRepository;
+    }
 
      // Add APIOperation annotation to provide a summary and description for the API endpoint in the Open API documentation
     @Operation(summary = "Get all tasks",
@@ -66,24 +74,11 @@ public class TaskController {
              task.setCreatedAt(LocalDateTime.now());
          }
          // Suggest the category based on the title if they are not provided
-         if (task.getCategory() == null || task.getCategory().isEmpty() || task.getCategory().isBlank()) {
-             if (task.getTitle() != null && !task.getTitle().isEmpty()) {
-                 String lowerTitle = task.getTitle().toLowerCase();
-                 if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
-                     task.setCategory("Personal");
-                 } else if (lowerTitle.contains("project") || lowerTitle.contains("report")) {
-                     task.setCategory("Work");
-                 } else if (lowerTitle.contains("trip") || lowerTitle.contains("travel")) {
-                     task.setCategory("Leisure");
-                 } else {
-                     task.setCategory("General");
-                 }
-             } else {
-                 task.setCategory("General");
-             }
-         }
+        if (task.getCategory() == null || task.getCategory().isBlank()) {
+            task.setCategory(taskAIService.categorize(task.getTitle(), task.getDescription()));
+        }
 
-         // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
+        // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
             if (task.getPriority() == null || task.getPriority().isEmpty()) {
                 if (task.getTitle() != null && !task.getTitle().isEmpty()) {
                     String lowerTitle = task.getTitle().toLowerCase();
@@ -117,7 +112,7 @@ public class TaskController {
          } else {
              task.setDueDate(LocalDate.now().plusDays(7).toString());
          }
-
+         sanitizeTaskInput(task);
          return taskRepository.save(task);
      }
 
@@ -166,27 +161,13 @@ public class TaskController {
              task.setUpdatedAt(taskDetails.getUpdatedAt());
          }
 
-         // Determine the category based on the title if it is not provided
-         if (taskDetails.getCategory() == null || taskDetails.getCategory().isEmpty() || taskDetails.getCategory().isBlank()) {
-             if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
-                 String lowerTitle = taskDetails.getTitle().toLowerCase();
-                 if (lowerTitle.contains("groceries") || lowerTitle.contains("shopping")) {
-                     task.setCategory("Personal");
-                 } else if (lowerTitle.contains("project") || lowerTitle.contains("report")) {
-                     task.setCategory("Work");
-                 } else if (lowerTitle.contains("trip") || lowerTitle.contains("travel")) {
-                     task.setCategory("Leisure");
-                 } else {
-                     task.setCategory("General");
-                 }
-             } else {
-                 task.setCategory("General");
-             }
-         } else {
-             task.setCategory(taskDetails.getCategory());
-         }
+        if (taskDetails.getCategory() == null || taskDetails.getCategory().isBlank()) {
+            task.setCategory(taskAIService.categorize(taskDetails.getTitle(), taskDetails.getDescription()));
+        } else {
+            task.setCategory(taskDetails.getCategory().trim());
+        }
 
-         // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
+        // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
          if (taskDetails.getPriority() == null || taskDetails.getPriority().isEmpty()) {
              if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
                  String lowerTitle = taskDetails.getTitle().toLowerCase();
@@ -219,7 +200,8 @@ public class TaskController {
              }
          }
 
-         return taskRepository.save(task);
+        sanitizeTaskInput(task);
+        return taskRepository.save(task);
      }
 
      // Add APIOperation annotation to provide a summary and description for the API endpoint in the Open API documentation
@@ -262,4 +244,20 @@ public class TaskController {
              return "No description provided";
          }
      }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed; // optional: convert blank to null
+    }
+
+    private void sanitizeTaskInput(TaskEntity task) {
+        task.setTitle(normalize(task.getTitle()));
+        task.setDescription(normalize(task.getDescription()));
+        task.setStatus(normalize(task.getStatus()));
+        task.setPriority(normalize(task.getPriority()));
+        task.setDueDate(normalize(task.getDueDate()));
+        task.setCategory(normalize(task.getCategory()));
+    }
+
 }
