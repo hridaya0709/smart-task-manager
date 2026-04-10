@@ -3,12 +3,15 @@ package com.ai_practice.github.smart_task_manager;
 import com.ai_practice.github.smart_task_manager.controller.TaskController;
 import com.ai_practice.github.smart_task_manager.entity.TaskEntity;
 import com.ai_practice.github.smart_task_manager.repository.TaskRepository;
+import com.ai_practice.github.smart_task_manager.service.TaskAICategoryService;
+import com.ai_practice.github.smart_task_manager.service.TaskAIPriorityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -25,9 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// import TaskAIService
-import com.ai_practice.github.smart_task_manager.service.TaskAIService;
-
+@ActiveProfiles("test")
 @WebMvcTest(controllers = TaskController.class)
 public class TaskControllerTest {
 
@@ -40,9 +41,12 @@ public class TaskControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Create a mock bean for TaskAIService to allow the TaskController to be tested without requiring an actual implementation of the service
+    // Create a mock bean for taskAICategoryService to allow the TaskController to be tested without requiring an actual implementation of the service
     @MockBean
-    private TaskAIService taskAIService;
+    private TaskAICategoryService taskAICategoryService;
+
+    @MockBean
+    private TaskAIPriorityService taskAIPriorityService;
 
     /*Get test cases*/
     @Test
@@ -146,7 +150,7 @@ public class TaskControllerTest {
              t.setTitle("My Task");
              t.setDescription("My Description");
          });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -165,7 +169,7 @@ public class TaskControllerTest {
              t.setTitle("Buy Groceries");
              t.setDescription(null);
          });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -183,7 +187,7 @@ public class TaskControllerTest {
              t.setTitle("Finish Project Report");
              t.setDescription("");
          });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -197,7 +201,7 @@ public class TaskControllerTest {
     void createTask_generatesDefaultDescriptionForUnrecognizedTitle() throws Exception {
         // create task using task() helper method to set up the task with default values, then override the title field to match the title used in the test
         TaskEntity task = task(t -> t.setTitle("Unknown Task"));
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -216,7 +220,7 @@ public class TaskControllerTest {
             t.setStatus("OPEN");
             t.setDueDate("invalid-date");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         mockMvc.perform(post("/smart-task-manager/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(task)))
@@ -261,7 +265,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setPriority("High");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -285,7 +289,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setCategory("General");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
 
         mockMvc.perform(post("/smart-task-manager/api/tasks")
@@ -294,6 +298,31 @@ public class TaskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.category").value("General"));
+    }
+
+    // Create a test case for the createTask endpoin tto verify TaskAIPriorityService is called to categorize a task when a priority is not provided in the request body
+    @Test
+    void createTask_categorizesTaskPriorityUsingAIPriorityServiceWhenPriorityIsNotProvided() throws Exception {
+        TaskEntity task = task(t -> {
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+        });
+        TaskEntity saved = task(t -> {
+            t.setId(1L);
+            t.setTitle("New Task");
+            t.setDescription("New Desc");
+            t.setPriority("High");
+        });
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
+        when(taskAIPriorityService.prioritize(any(TaskEntity.class))).thenReturn("High");
+        when(taskRepository.save(any(TaskEntity.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/smart-task-manager/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.priority").value("High"));
     }
 
     /*Update test cases*/
@@ -313,7 +342,7 @@ public class TaskControllerTest {
              t.setDescription("New Desc");
              t.setStatus("DONE");
          });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -341,7 +370,7 @@ public class TaskControllerTest {
              t.setDescription("");
              t.setStatus("OPEN");
          });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -381,7 +410,7 @@ public class TaskControllerTest {
             t.setStatus("DONE");
             t.setDueDate("invalid-date");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         mockMvc.perform(put("/smart-task-manager/api/tasks/1")
@@ -428,7 +457,7 @@ public class TaskControllerTest {
             t.setDescription("New Desc");
             t.setPriority("High");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -453,7 +482,7 @@ public class TaskControllerTest {
             t.setTitle("New Title");
             t.setDescription("New Desc");
         });
-        when(taskAIService.categorize(any(), any())).thenReturn("General");
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -464,6 +493,32 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$.title").value("New Title"))
                 .andExpect(jsonPath("$.description").value("New Desc"))
                 .andExpect(jsonPath("$.category").value("General"));
+    }
+
+    // Create a test case for the updateTask endpoint to verify that it correctly categorizes a task's priority using the TaskAIPriorityService when a priority is not provided in the request body
+    @Test
+    void updateTask_categorizesTaskPriorityUsingAIPriorityServiceWhenPriorityIsNotProvided() throws Exception {
+        TaskEntity existing = task(t -> {
+            t.setId(1L);
+            t.setTitle("Old Title");
+            t.setDescription("Old Desc");
+        });
+        TaskEntity details = task(t -> {
+            t.setTitle("New Title");
+            t.setDescription("New Desc");
+        });
+        when(taskAICategoryService.categorize(any(), any())).thenReturn("General");
+        when(taskAIPriorityService.prioritize(any(TaskEntity.class))).thenReturn("Medium");
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(taskRepository.save(any(TaskEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        mockMvc.perform(put("/smart-task-manager/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(details)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Title"))
+                .andExpect(jsonPath("$.description").value("New Desc"))
+                .andExpect(jsonPath("$.priority").value("Medium"));
     }
 
     /*Delete test cases*/

@@ -2,6 +2,8 @@ package com.ai_practice.github.smart_task_manager.controller;
 
 // import the dependencies needed to create a controller class
 import com.ai_practice.github.smart_task_manager.exception.ResourceNotFoundException;
+import com.ai_practice.github.smart_task_manager.service.TaskAICategoryService;
+import com.ai_practice.github.smart_task_manager.service.TaskAIPriorityService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.coyote.BadRequestException;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +23,6 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-// import TaskAIService to use the AI service for categorizing tasks based on their title and description
-import com.ai_practice.github.smart_task_manager.service.TaskAIService;
-
 // Add @Tag annotation to group the API endpoints in the Open API documentation
 @Tag(name = "Task API", description = "API for managing tasks in the Smart Task Manager application")
 // create the TaskController class that will handle the HTTP requests for the Task entity
@@ -31,11 +30,14 @@ import com.ai_practice.github.smart_task_manager.service.TaskAIService;
 @RequestMapping("/smart-task-manager/api")
 public class TaskController {
     private final TaskRepository taskRepository;
-    // Create a constructor to inject the TaskAIService dependency and TaskRepository dependency
-    private final TaskAIService taskAIService;
+    private final TaskAICategoryService taskAICategoryService;
+    // Add a field for TaskAIPriorityService to use the AI service for suggesting priority levels based on the title of the task
+    private final TaskAIPriorityService taskAIPriorityService;
 
-    public TaskController(TaskAIService taskAIService, TaskRepository taskRepository) {
-        this.taskAIService = taskAIService;
+    // Create a constructor to inject the TaskAICategoryService dependency and TaskRepository dependency
+    public TaskController(TaskAICategoryService taskAICategoryService, TaskRepository taskRepository, TaskAIPriorityService taskAIPriorityService) {
+         this.taskAIPriorityService = taskAIPriorityService;
+        this.taskAICategoryService = taskAICategoryService;
         this.taskRepository = taskRepository;
     }
 
@@ -73,34 +75,23 @@ public class TaskController {
          if (task.getCreatedAt() == null) {
              task.setCreatedAt(LocalDateTime.now());
          }
-         // Suggest the category based on the title if they are not provided
+         // Suggest the category based on the title if category is not provided
         if (task.getCategory() == null || task.getCategory().isBlank()) {
-            task.setCategory(taskAIService.categorize(task.getTitle(), task.getDescription()));
+            task.setCategory(taskAICategoryService.categorize(task.getTitle(), task.getDescription()));
         }
 
-        // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
-            if (task.getPriority() == null || task.getPriority().isEmpty()) {
-                if (task.getTitle() != null && !task.getTitle().isEmpty()) {
-                    String lowerTitle = task.getTitle().toLowerCase();
-                    if (lowerTitle.contains("urgent") || lowerTitle.contains("asap") || lowerTitle.contains("immediately")) {
-                        task.setPriority("High");
-                    } else if (lowerTitle.contains("soon") || lowerTitle.contains("important")) {
-                        task.setPriority("Medium");
-                    } else {
-                        task.setPriority("Low");
-                    }
-                } else {
-                    task.setPriority("Medium");
-                }
+        // Suggest the priority using taskAIPriorityService if priority is not provided
+        if(task.getPriority() == null || task.getPriority().isEmpty()) {
+            task.setPriority(taskAIPriorityService.prioritize(task));
+        } else {
+            // Validate the provided priority value and set it to "Medium" if it is invalid
+            String priority = task.getPriority().trim();
+            if (priority.equalsIgnoreCase("Low") || priority.equalsIgnoreCase("Medium") || priority.equalsIgnoreCase("High")) {
+                task.setPriority(priority.substring(0, 1).toUpperCase() + priority.substring(1).toLowerCase());
             } else {
-                // Validate the provided priority value and set it to "Medium" if it is invalid
-                String priority = task.getPriority().trim();
-                if (priority.equalsIgnoreCase("Low") || priority.equalsIgnoreCase("Medium") || priority.equalsIgnoreCase("High")) {
-                    task.setPriority(priority.substring(0, 1).toUpperCase() + priority.substring(1).toLowerCase());
-                } else {
-                    task.setPriority("Medium");
-                }
+                task.setPriority("Medium");
             }
+        }
 
          if (task.getDueDate() != null && !task.getDueDate().isBlank()) {
              try {
@@ -162,25 +153,14 @@ public class TaskController {
          }
 
         if (taskDetails.getCategory() == null || taskDetails.getCategory().isBlank()) {
-            task.setCategory(taskAIService.categorize(taskDetails.getTitle(), taskDetails.getDescription()));
+            task.setCategory(taskAICategoryService.categorize(taskDetails.getTitle(), taskDetails.getDescription()));
         } else {
             task.setCategory(taskDetails.getCategory().trim());
         }
 
         // Modify the priority field to suggest a priority level based on the title if it is not provided priority is "Medium". priority can be "Low", "Medium" or "High"
          if (taskDetails.getPriority() == null || taskDetails.getPriority().isEmpty()) {
-             if (taskDetails.getTitle() != null && !taskDetails.getTitle().isEmpty()) {
-                 String lowerTitle = taskDetails.getTitle().toLowerCase();
-                 if (lowerTitle.contains("urgent") || lowerTitle.contains("asap") || lowerTitle.contains("immediately")) {
-                     task.setPriority("High");
-                 } else if (lowerTitle.contains("soon") || lowerTitle.contains("important")) {
-                     task.setPriority("Medium");
-                 } else {
-                     task.setPriority("Low");
-                 }
-             } else {
-                 task.setPriority("Medium");
-             }
+             task.setPriority(taskAIPriorityService.prioritize(task));
          } else {
              // Validate the provided priority value and set it to "Medium" if it is invalid
              String priority = taskDetails.getPriority().trim();
