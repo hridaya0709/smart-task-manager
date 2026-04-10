@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.time.Duration;
 import java.util.Set;
 
 @Service
+@ConditionalOnProperty(name = "ollama.enabled", havingValue = "true")
 public class OllamaTaskCategoryService implements TaskAIService {
 
     private static final Logger log = LoggerFactory.getLogger(OllamaTaskCategoryService.class);

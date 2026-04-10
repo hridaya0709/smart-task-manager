@@ -199,9 +199,6 @@ public class TaskController {
                  throw new BadRequestException("Invalid date format for dueDate.");
              }
          }
-        else {
-             task.setDueDate(LocalDate.now().plusDays(7).toString());
-         }
 
         sanitizeTaskInput(task);
         return taskRepository.save(task);
