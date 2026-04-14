@@ -39,6 +39,29 @@ This project is developed using GitHub Copilot to:
 
 ---
 
+## Local AI Integration
+
+This project uses local AI models via Ollama to analyze tasks and predict:
+
+* Task category
+* Task priority
+* Task complexity (future enhancement)
+
+This approach provides:
+
+* 🔒 Better data privacy (no external API calls)
+* ⚡ Faster response times
+* 💰 No API costs
+* 🧠 Offline AI capability
+
+> I will be moving the implementation to any remote free AI model (future enhancement)
+
+### Supported Models
+
+- mistral
+
+---
+
 ## 📌 Features
 
 ### Task Management
@@ -82,10 +105,31 @@ This project simulates AI multi-agent orchestration:
 ## AI Task Processing Flow
 
 ```mermaid
-graph TD;
-    A[Task Creation]-->B[Task Category Agent];
-    B[Task Category Agent]-->C[Task Priority Agent];
-    C[Task Priority Agent]-->D[Task Saved];
+flowchart TD;
+    subgraph Application Layer;
+        A[Task Controller];
+    end
+
+    subgraph AI Agents;
+        B[Task Analyzer Agent];
+        C[Task Priority Agent];
+    end
+
+    subgraph Local AI;
+        E[Ollama Mistral];
+    end
+
+    subgraph Database;
+        D[Task Saved in DB];
+    end
+
+    A <--> B;
+    A <--> C;
+
+    B <--> E;
+    C <--> E;
+
+    A <--> D;
 ```
 ---
 
