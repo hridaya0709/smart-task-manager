@@ -7,7 +7,6 @@ The project demonstrates AI-assisted development workflows, multi-agent orchestr
 
 ## 🎯 Objectives
 
-* Build a robust 
 * Practice and implement the learnings of [GH-300](https://learn.microsoft.com/en-us/credentials/certifications/github-copilot/)
 
 ---
@@ -60,6 +59,7 @@ This project is developed using GitHub Copilot to:
 ### AI Category Assignment
 Automatically assigns category:
 * Work, Personal, Health, Finance, Education, Shopping, Travel, Home, General
+
 Based on:
 * Task title and description
   
