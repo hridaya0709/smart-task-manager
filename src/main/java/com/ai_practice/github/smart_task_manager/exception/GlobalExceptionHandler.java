@@ -59,9 +59,8 @@ public class GlobalExceptionHandler {
 
     private String getRootMessage(Throwable ex) {
         Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
-        return (root != null && root.getMessage() != null) ? root.getMessage() : ex.getMessage();
+        return (root.getMessage() != null) ? root.getMessage() : ex.getMessage();
     }
-
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
